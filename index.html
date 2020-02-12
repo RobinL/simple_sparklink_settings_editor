@@ -1,69 +1,73 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 	<title>browser-amd-editor</title>
 	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
 </head>
+
 <body>
 
-<h2>Sparklink settings autocompleter</h2>
-<h3>ctrl+space to autocomplete</h3>
-<div id="container" style="width:800px;height:600px;border:1px solid grey"></div>
+	<h2>Sparklink settings autocompleter</h2>
+	<h3>ctrl+space to autocomplete</h3>
+	<div id="container" style="width:800px;height:600px;border:1px solid grey"></div>
 
-<!-- OR ANY OTHER AMD LOADER HERE INSTEAD OF loader.js -->
-<script src="node_modules/monaco-editor/min/vs/loader.js"></script>
-<script>
-	require.config({ paths: { 'vs': 'node_modules/monaco-editor/min/vs' }});
+	<!-- OR ANY OTHER AMD LOADER HERE INSTEAD OF loader.js -->
+	<script src="node_modules/monaco-editor/min/vs/loader.js"></script>
+	<script>
+		require.config({ paths: { 'vs': 'node_modules/monaco-editor/min/vs' } });
 
-	require(['vs/editor/editor.main'], function() {
+		require(['vs/editor/editor.main'], function () {
+
+			let my_url = 'https://raw.githubusercontent.com/moj-analytical-services/sparklink/validation/sparklink/files/settings_jsonschema.json';
+
+			fetch(my_url)
+				.then(res => res.json())
+				.then((out) => {
+
+					var jsonCode = [
+
+					'{',
+					'	"proportion_of_matches": 0.5,',
+					'	"comparison_columns": [',
+					'		{',
+					'		"col_name": "height",',
+					'		"data_type": "string",',
+					'		"num_levels": 3',
+					'		},',
+					'		{',
+					'		"col_name": "first_name"',
+					'		}',
+					'	]',
+					'}',
+					].join('\n');
+					var modelUri = monaco.Uri.parse("a://b/foo.json"); // a made up unique URI for our model
+					var model = monaco.editor.createModel(jsonCode, "json", modelUri);
+
+					// configure the JSON language support with schemas and schema associations
+					monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+						validate: true,
+						schemas: [{
+							uri: my_url, // id of the first schema
+							fileMatch: [modelUri.toString()], // associate with our model
+							schema: out
+						}]
+					});
+
+					var editor = monaco.editor.create(document.getElementById('container'), {
+						value: jsonCode,
+						language: 'json',
+						model: model
+
+					})
+						.catch(err => { throw err });
 
 
-		var jsonCode = [
-			'{',
-			'    "p1": "v3",',
-			'    "p2": false',
-			"}"
-		].join('\n');
-		var modelUri = monaco.Uri.parse("a://b/foo.json"); // a made up unique URI for our model
-		var model = monaco.editor.createModel(jsonCode, "json", modelUri);
 
-		// configure the JSON language support with schemas and schema associations
-		monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-			validate: true,
-			schemas: [{
-				uri: "http://myserver/foo-schema.json", // id of the first schema
-				fileMatch: [modelUri.toString()], // associate with our model
-				schema: {
-					type: "object",
-					properties: {
-						p1: {
-							enum: ["v1", "v2"]
-						},
-						p2: {
-							$ref: "http://myserver/bar-schema.json" // reference the second schema
-						}
-					}
-				}
-			}, {
-				uri: "http://myserver/bar-schema.json", // id of the first schema
-				schema: {
-					type: "object",
-					properties: {
-						q1: {
-							enum: ["x1", "x2"]
-						}
-					}
-				}
-			}]
+				});
 		});
-
-		var editor = monaco.editor.create(document.getElementById('container'), {
-			value: jsonCode,
-			language: 'json',
-			model: model
-		});
-	});
-</script>
+	</script>
 </body>
+
 </html>
